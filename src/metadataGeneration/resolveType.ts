@@ -62,13 +62,19 @@ export function resolveType(typeNode: ts.TypeNode, parentNode?: ts.Node, extract
   }
 
   const typeReference = typeNode as ts.TypeReferenceNode;
+  // console.log('resolveType typeReference', typeReference);
   if (typeReference.typeName.kind === ts.SyntaxKind.Identifier) {
+    // console.log(`*** resolveType typeReference: ${typeReference.typeName.text} kind is Identifier!`);
     if (typeReference.typeName.text === 'Date') {
       return getDateType(typeNode, parentNode);
     }
 
     if (typeReference.typeName.text === 'Buffer') {
       return { dataType: 'buffer' } as Tsoa.Type;
+    }
+
+    if (typeReference.typeName.text === 'String') {
+      return { dataType: 'string' } as Tsoa.Type;
     }
 
     if (typeReference.typeName.text === 'Array' && typeReference.typeArguments && typeReference.typeArguments.length === 1) {
@@ -431,12 +437,15 @@ function resolveModelTypeScope(leftmost: ts.EntityName, statements: any): any[] 
 }
 
 function getModelTypeDeclaration(type: ts.EntityName) {
+
   const leftmostIdentifier = resolveLeftmostIdentifier(type);
   const statements: any[] = resolveModelTypeScope(leftmostIdentifier, MetadataGenerator.current.nodes);
 
   const typeName = type.kind === ts.SyntaxKind.Identifier
     ? (type as ts.Identifier).text
     : (type as ts.QualifiedName).right.text;
+
+  // console.log(`getModelTypeDeclaration leftmost: ${leftmostIdentifier} typeName: ${typeName}`, type);
 
   const modelTypes = statements
     .filter((node) => {
@@ -453,7 +462,9 @@ function getModelTypeDeclaration(type: ts.EntityName) {
   }
   if (modelTypes.length > 1) {
     const conflicts = modelTypes.map((modelType) => modelType.getSourceFile().fileName).join('"; "');
-    throw new GenerateMetadataError(`Multiple matching models found for referenced type ${typeName}; please make model names unique. Conflicts found: "${conflicts}".`);
+    const errorMessage = `Multiple matching models found for referenced type ${typeName}; please make model names unique. Conflicts found: "${conflicts}".`;
+    // throw new GenerateMetadataError(errorMessage);
+    console.log(errorMessage);
   }
 
   return modelTypes[0];
